@@ -11,8 +11,11 @@ use structopt::StructOpt;
 #[derive(StructOpt)]
 struct Cli {
     /// Input file
-    #[structopt(parse(from_os_str))]
-    input: PathBuf,
+    #[structopt(parse(from_os_str), required_if("no_stream", "true"))]
+    input: Option<PathBuf>,
+
+    #[structopt(short, long)]
+    no_stream: bool,
 }
 
 fn main() {
@@ -20,11 +23,12 @@ fn main() {
     //     return;
     // }
 
-    let mut buf: String;
-    if atty::is(Stream::Stdin) {
-        let cli = Cli::from_args();
+    let cli = Cli::from_args();
 
-        buf = fs::read_to_string(&cli.input).expect("Failed to read file");
+    let mut buf: String;
+    if atty::is(Stream::Stdin) || cli.no_stream {
+        buf = fs::read_to_string(&cli.input.expect("Input file required"))
+            .expect("Failed to read file");
     } else {
         buf = String::new();
         let mut stdin = io::stdin();
