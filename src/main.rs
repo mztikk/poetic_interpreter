@@ -1,18 +1,35 @@
 use atty::Stream;
 use poetic::{interpreter::Interpreter, parser::Parser};
 use std::{
+    fs,
     io::{self, Read},
+    path::PathBuf,
     time::Instant,
 };
+use structopt::StructOpt;
+
+#[derive(StructOpt)]
+struct Cli {
+    /// Input file
+    #[structopt(parse(from_os_str))]
+    input: PathBuf,
+}
 
 fn main() {
-    if atty::is(Stream::Stdin) {
-        return;
-    }
+    // if atty::is(Stream::Stdin) {
+    //     return;
+    // }
 
-    let mut stdin = io::stdin();
-    let mut buf = String::new();
-    stdin.read_to_string(&mut buf).unwrap();
+    let mut buf: String;
+    if atty::is(Stream::Stdin) {
+        let cli = Cli::from_args();
+
+        buf = fs::read_to_string(&cli.input).expect("Failed to read file");
+    } else {
+        buf = String::new();
+        let mut stdin = io::stdin();
+        stdin.read_to_string(&mut buf).unwrap();
+    }
 
     let run_now = Instant::now();
 
