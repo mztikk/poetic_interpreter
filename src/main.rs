@@ -28,6 +28,13 @@ struct Cli {
 
     #[structopt(short, long, help = "Prints the time it took to parse and run")]
     time: bool,
+
+    #[structopt(
+        short,
+        long,
+        help = "Size of fixed memory, if ommitted dynamic memory is used"
+    )]
+    memory_size: Option<usize>,
 }
 
 fn main() {
@@ -69,16 +76,16 @@ fn main() {
 
     // let out_file = Arc::new(Mutex::new(File::create("output.txt").unwrap()));
 
-    let mut interpreter = Interpreter::new(code);
-    // let mut interpreter = Interpreter::new_io(
-    //     code,
-    //     Box::new(default_input_stream),
-    //     Box::new(move |s| {
-    //         out_file.lock().unwrap().write_all(s.as_bytes()).unwrap();
-    //     }),
-    //     // Box::new(default_output_stream),
-    // );
-    interpreter.run();
+    match cli.memory_size {
+        Some(size) => {
+            let mut interpreter = Interpreter::new_fixed_size(code, size);
+            interpreter.run();
+        }
+        None => {
+            let mut interpreter = Interpreter::new(code);
+            interpreter.run();
+        }
+    }
 
     if cli.time {
         println!("run took {}", run_time.elapsed().as_secs_f64());
