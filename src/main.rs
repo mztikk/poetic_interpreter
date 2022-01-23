@@ -1,6 +1,7 @@
 use atty::Stream;
 use poetic::{
     interpreter::{default_input_stream, default_output_stream, Interpreter},
+    optimizer::Optimizer,
     parser::Parser,
 };
 use std::{
@@ -35,6 +36,9 @@ struct Cli {
         help = "Size of fixed memory, if ommitted dynamic memory is used"
     )]
     memory_size: Option<usize>,
+
+    #[structopt(short, long, help = "Disables optimizations")]
+    disable_optimizations: bool,
 }
 
 fn main() {
@@ -66,7 +70,7 @@ fn main() {
     }
 
     let instructions_time = Instant::now();
-    let code = Parser::parse_instructions(&intermediate);
+    let mut code = Parser::parse_instructions(&intermediate);
     if cli.time {
         println!(
             "parsing to instructions took {}",
@@ -75,6 +79,15 @@ fn main() {
     }
 
     // let out_file = Arc::new(Mutex::new(File::create("output.txt").unwrap()));
+
+    if !cli.disable_optimizations {
+        let optimize_time = Instant::now();
+        let mut optimizer = Optimizer::new(code);
+        code = optimizer.optimize();
+        if cli.time {
+            println!("optimizing took {}", optimize_time.elapsed().as_secs_f64());
+        }
+    }
 
     match cli.memory_size {
         Some(size) => {
