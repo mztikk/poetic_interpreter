@@ -9,6 +9,6 @@ lto = true
 codegen-units = 1
 
 [dependencies]
-poetic = {path = "../poetic"}
+poetic = "0.1"
 atty = "0.2"
 structopt = "0.3"
