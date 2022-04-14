@@ -1,25 +1,23 @@
 use atty::Stream;
+use clap::Parser;
 use poetic::{
-    interpreter::{default_input_stream, default_output_stream, Interpreter},
-    optimizer::Optimizer,
-    parser::Parser,
+    interpreter::Interpreter,
+    optimizer::{Optimize, Optimizer},
 };
 use std::{
-    fs::{self, File},
-    io::{self, Read, Write},
+    fs,
+    io::{self, Read},
     path::PathBuf,
-    sync::{Arc, Mutex},
     time::Instant,
 };
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser, Debug)]
 struct Cli {
     /// Input file
-    #[structopt(parse(from_os_str), help = "Input file to interpret and run")]
+    #[clap(parse(from_os_str), help = "Input file to interpret and run")]
     input: Option<PathBuf>,
 
-    #[structopt(
+    #[clap(
         short,
         long,
         requires("input"),
@@ -27,17 +25,17 @@ struct Cli {
     )]
     no_stream: bool,
 
-    #[structopt(short, long, help = "Prints the time it took to parse and run")]
+    #[clap(short, long, help = "Prints the time it took to parse and run")]
     time: bool,
 
-    #[structopt(
+    #[clap(
         short,
         long,
         help = "Size of fixed memory, if ommitted dynamic memory is used"
     )]
     memory_size: Option<usize>,
 
-    #[structopt(short, long, help = "Disables optimizations")]
+    #[clap(short, long, help = "Disables optimizations")]
     disable_optimizations: bool,
 }
 
@@ -46,7 +44,7 @@ fn main() {
     //     return;
     // }
 
-    let cli = Cli::from_args();
+    let cli = Cli::parse();
 
     let mut buf: String;
     if atty::is(Stream::Stdin) || cli.no_stream {
@@ -61,7 +59,7 @@ fn main() {
     let run_time = Instant::now();
 
     let intermediate_time = Instant::now();
-    let intermediate = Parser::parse_intermediate(&buf);
+    let intermediate = poetic::parser::Parser::parse_intermediate(&buf);
     if cli.time {
         println!(
             "parsing to intermediate took {}",
@@ -70,7 +68,7 @@ fn main() {
     }
 
     let instructions_time = Instant::now();
-    let mut code = Parser::parse_instructions(&intermediate);
+    let mut code = poetic::parser::Parser::parse_instructions(&intermediate);
     if cli.time {
         println!(
             "parsing to instructions took {}",
@@ -82,8 +80,8 @@ fn main() {
 
     if !cli.disable_optimizations {
         let optimize_time = Instant::now();
-        let mut optimizer = Optimizer::new(code);
-        code = optimizer.optimize();
+        let optimizer = Optimizer;
+        code = optimizer.optimize(&code);
         if cli.time {
             println!("optimizing took {}", optimize_time.elapsed().as_secs_f64());
         }
@@ -91,7 +89,7 @@ fn main() {
 
     match cli.memory_size {
         Some(size) => {
-            let mut interpreter = Interpreter::new_fixed_size(code, size);
+            let mut interpreter = Interpreter::new(code).with_fixed_size_memory(size);
             interpreter.run();
         }
         None => {
