@@ -68,37 +68,41 @@ fn main() {
     }
 
     let instructions_time = Instant::now();
-    let mut code = poetic::parser::Parser::parse_instructions(&intermediate);
-    if cli.time {
-        println!(
-            "parsing to instructions took {}",
-            instructions_time.elapsed().as_secs_f64()
-        );
-    }
+    match poetic::parser::Parser::parse_instructions(&intermediate) {
+        Ok(mut code) => {
+            if cli.time {
+                println!(
+                    "parsing to instructions took {}",
+                    instructions_time.elapsed().as_secs_f64()
+                );
+            }
 
-    // let out_file = Arc::new(Mutex::new(File::create("output.txt").unwrap()));
+            if !cli.disable_optimizations {
+                let optimize_time = Instant::now();
+                let optimizer = Optimizer;
+                code = optimizer.optimize(&code);
+                if cli.time {
+                    println!("optimizing took {}", optimize_time.elapsed().as_secs_f64());
+                }
+            }
 
-    if !cli.disable_optimizations {
-        let optimize_time = Instant::now();
-        let optimizer = Optimizer;
-        code = optimizer.optimize(&code);
-        if cli.time {
-            println!("optimizing took {}", optimize_time.elapsed().as_secs_f64());
+            match cli.memory_size {
+                Some(size) => {
+                    let mut interpreter = Interpreter::new(code).with_fixed_size_memory(size);
+                    interpreter.run();
+                }
+                None => {
+                    let mut interpreter = Interpreter::new(code);
+                    interpreter.run();
+                }
+            }
+
+            if cli.time {
+                println!("run took {}", run_time.elapsed().as_secs_f64());
+            }
         }
-    }
-
-    match cli.memory_size {
-        Some(size) => {
-            let mut interpreter = Interpreter::new(code).with_fixed_size_memory(size);
-            interpreter.run();
+        Err(e) => {
+            println!("{}", e);
         }
-        None => {
-            let mut interpreter = Interpreter::new(code);
-            interpreter.run();
-        }
-    }
-
-    if cli.time {
-        println!("run took {}", run_time.elapsed().as_secs_f64());
     }
 }

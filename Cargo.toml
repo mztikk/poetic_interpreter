@@ -10,6 +10,6 @@ codegen-units = 1
 strip = true
 
 [dependencies]
-poetic = "0.1.1"
+poetic = "0.2.0"
 atty = "0.2.14"
 clap = { version = "3.1.8", features = ["derive"] }
